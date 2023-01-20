@@ -12,7 +12,13 @@ import trimesh as tm
 import copy
 import numpy as np
 
-#############################################################################################
+####################################### initialization ######################################################
+LEARNING_RATE = 0.001
+NUM_All_HEAD = 5
+NUM_EPOCHS = 10
+TEST_INDEX  = [1,2]
+
+train_index = list(set(range(NUM_All_HEAD)) - (set(TEST_INDEX)))
 
 if torch.cuda.is_available():
     device = torch.device('cuda')
@@ -21,19 +27,20 @@ else:
 
 data_path = os.path.join(os.getcwd(), "data")
 dataset = MeshDataset(root=data_path)
-dataset = dataset.shuffle()
+# dataset = dataset.shuffle()
 
-ld = 4   # num of head subjects for training
-train_set = dataset[:ld]
-test_set = dataset[ld:]
+train_set = dataset[train_index]
+test_set = dataset[TEST_INDEX]
 train_loader = DataLoader(train_set, batch_size=1, shuffle=True)
 test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
 
 
-model = MDC_GCN(num_features=39, hidden_channels=1024, num_classes=3).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.002, weight_decay=5e-4)
+model = MDC_GCN(num_features=57, hidden_channels=1024, num_classes=3).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE, weight_decay=5e-4)
 criterion = torch.nn.CrossEntropyLoss()
 
+######################################### train and test functions ##############################################
+torch.cuda.empty_cache()
 
 def train():
     model.train()
@@ -60,18 +67,21 @@ def test():
             correct += int((pred == data.y.squeeze()).sum())
     return correct / (len(test_loader.dataset)*data.y.size(0))
 
-num_epoch = 120
+#######################################################################################################
+num_epoch = NUM_EPOCHS
 for epoch in range(num_epoch):
     loss_train = train()
     if (epoch+1)%10==0 or epoch==0:
         accuracy = test()
         print(f'Epoch {epoch+1:d}: loss of train stage is {loss_train:.2f}, accuracy of test stage is {accuracy*100:.2f}%\n')
 
-
-# display the result
+#################################### display the result #######################################
+torch.cuda.empty_cache()
 model.eval()
+test_path = os.path.join(os.getcwd(), "data_raw")
+test_ply_path = [os.path.join(test_path, file_name) for file_name in os.listdir(test_path)]
 
-for data in test_loader:
+for count, data in enumerate(test_loader):
     data = data.to(device)
     out = model(data.x.float(), data.edge_index)
     test_labels = out.argmax(dim=1)
@@ -79,8 +89,9 @@ for data in test_loader:
     test_right_ear_label = (test_labels == 1)
     test_left_ear_label = (test_labels == 2)
 
-    test_path = os.path.join(os.getcwd(), "data_raw\\pp5_labeled.ply")
-    mesh = o3d.io.read_triangle_mesh(test_path)
+    # for test_ply_path in test_plys_path:
+        # test_path = os.path.join(os.getcwd(), "data_raw\\pp5_labeled.ply")
+    mesh = o3d.io.read_triangle_mesh(test_ply_path[TEST_INDEX[count]])
     mesh.compute_vertex_normals()
 
     test_mesh1 = copy.deepcopy(mesh)

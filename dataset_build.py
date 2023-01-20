@@ -7,10 +7,13 @@ from torch.nn import functional as F
 import pickle
 import numpy as np
 
+# to do steps:
+# （1） put all .pkl files in the "raw" folder and delete all files in "processed" folder
+
 class MeshDataset(Dataset):
     def __init__(self, root, transform=None, pre_transform=None):
         '''
-        root: a folder where the dataset should be stored. This folder is split into raw_dir (raw by default) and processed_dir (processed by default).
+        root: a folder where the dataset should be stored. This folder is split into raw_dir ('raw' by default) and processed_dir ('processed' by default).
         '''
         super().__init__(root, transform, pre_transform)
         # self.raw_files_path = os.path.join(root, "raw")
@@ -19,27 +22,33 @@ class MeshDataset(Dataset):
     @property
     def raw_file_names(self):
         '''
-        return the datasets in raw_dir
+        return the list of file names in raw_dir
         '''
         # path = os.getcwd()
-        file_nums = 0
+        # file_nums = 0
+        # for root, dirs, files in os.walk(self.raw_dir):
+        #     for file in files:
+        #         file_nums += 1
+        # return [f'pp{i+1}_labeled.pkl' for i in range(file_nums)]
+
+        raw_list = []
         for root, dirs, files in os.walk(self.raw_dir):
-            for each in files:
-                file_nums += 1
-        return [f'pp{i+1}_labeled.pkl' for i in range(file_nums)]
+            for file in files:
+                raw_list.append(file)
+        return raw_list
 
     @property
     def processed_file_names(self):
         '''
-        return a list of files in the processed_dir which needs to be found in order to skip the processing
+        return a list of file names in the processed_dir which needs to be found in order to skip the processing
         '''
         index = 0
         process_list = []
         for raw_path in self.raw_paths:
             process_list.append(f'pp_{index}.pt')
             index += 1
-
         return process_list
+
 
     def process(self):
         '''
@@ -57,7 +66,10 @@ class MeshDataset(Dataset):
             f2_fn = data['one_ring_face_normals']
             f3_vn = data['one_ring_points_normals']
             f4_ang = data['one_ring_angle']
-            feature_mat = np.hstack((f1_gc, f2_fn, f3_vn, f4_ang))  # complete features
+            f5_pos = data['one_ring_points_coordinate']
+            # print("check",f5_pos.shape)
+            feature_mat = np.hstack((f1_gc, f2_fn, f3_vn, f4_ang, f5_pos))  # complete features
+            # print(feature_mat.shape)
             label = data['label']
 
             label = torch.tensor(label).long()
