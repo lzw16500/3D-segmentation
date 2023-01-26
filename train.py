@@ -16,7 +16,7 @@ import numpy as np
 LEARNING_RATE = 0.001
 NUM_All_HEAD = 5
 NUM_EPOCHS = 10
-TEST_INDEX  = [1,2]
+TEST_INDEX  = [1,2,5]
 
 train_index = list(set(range(NUM_All_HEAD)) - (set(TEST_INDEX)))
 
@@ -31,8 +31,8 @@ dataset = MeshDataset(root=data_path)
 
 train_set = dataset[train_index]
 test_set = dataset[TEST_INDEX]
-train_loader = DataLoader(train_set, batch_size=1, shuffle=True)
-test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
+train_loader = DataLoader(train_set, batch_size=4, shuffle=True)
+test_loader = DataLoader(test_set, batch_size=4, shuffle=False)
 
 
 model = MDC_GCN(num_features=57, hidden_channels=1024, num_classes=3).to(device)
